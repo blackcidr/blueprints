@@ -1,0 +1,106 @@
+id: 08BFCB98-587E-4934-9150-3F903256F3FF
+name: hello-world
+description: A single web server hosting a dynamically generated 'Hello World' website
+actions:
+  - action: build
+    variables:
+      - variable: cloud
+      - variable: text
+        value: Hello World
+    tasks:
+      - scope: subnet
+        command: create
+        name: hw-subnet
+        options:
+          - cloud=<cloud>
+      - scope: firewall
+        command: create
+        name: hw-firewall
+        options:
+          - cloud=<cloud>
+      - scope: firewall
+        command: add-rule
+        name: <cloud>:hw-firewall
+        options:
+          - protocol=tcp
+          - port-range=22
+      - scope: firewall
+        command: add-rule
+        name: <cloud>:hw-firewall
+        options:
+          - protocol=tcp
+          - port-range=80
+      - scope: reserved-ip
+        command: create
+        name: hw-reserved-ip
+        options:
+          - cloud=<cloud>
+      - scope: keypair
+        command: create
+        name: hw-keypair
+        options:
+          - cloud=<cloud>
+      - scope: server
+        command: create
+        name: hw-server
+        options:
+          - cloud=<cloud>
+          - subnet=hw-subnet
+          - keypair=hw-keypair
+          - reserved-ip=hw-reserved-ip
+          - spec=default
+      - scope: firewall
+        command: attach
+        name: hw-firewall
+        options:
+          - server=hw-server
+          - cloud=<cloud>
+      - scope: ssh
+        command: exec
+        name: <cloud>:hw-server
+        options:
+          - cmd=sudo apt update
+      - scope: ssh
+        command: exec
+        name: <cloud>:hw-server
+        options:
+          - cmd=sudo apt install -y apache2
+      - scope: ssh
+        command: exec
+        name: <cloud>:hw-server
+        options:
+          - cmd=sudo ufw allow 'Apache'
+      - scope: ssh
+        command: exec
+        name: <cloud>:hw-server
+        options:
+          - cmd=mkdir /tmp/html
+      - scope: ssh
+        command: exec
+        name: <cloud>:hw-server
+        options:
+          - cmd=echo '<text>' > /tmp/html/index.html
+      - scope: ssh
+        command: exec
+        name: <cloud>:hw-server
+        options:
+          - cmd=sudo cp /tmp/html/index.html /var/www/html/index.html
+  - action: destroy
+    variables:
+      - variable: cloud
+    tasks:
+      - scope: server
+        command: delete
+        name: <cloud>:hw-server
+      - scope: keypair
+        command: delete
+        name: <cloud>:hw-keypair
+      - scope: reserved-ip
+        command: delete
+        name: <cloud>:hw-reserved-ip
+      - scope: firewall
+        command: delete
+        name: <cloud>:hw-firewall
+      - scope: subnet
+        command: delete
+        name: ' <cloud>:hw-subnet'
